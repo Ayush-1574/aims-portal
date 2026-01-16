@@ -1,35 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AuthPage from '@/components/auth/AuthPage';
+import StudentDashboard from '@/pages/StudentDashboard';
+import InstructorDashboard from '@/pages/InstructorDashboard';
+import FacultyDashboard from '@/pages/FacultyDashboard';
+import { USER_ROLES } from '@/config/constants';
 
-function App() {
-  const [count, setCount] = useState(0)
+const LogoutHandler = () => {
+  const { logout } = useAuth();
+  
+  React.useEffect(() => {
+    logout();
+  }, [logout]);
+
+  return <Navigate to="/" replace />;
+};
+
+const AppRoutes = () => {
+  const { user } = useAuth();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      <Route 
+        path="/" 
+        element={user ? <Navigate to={`/${user.role}/dashboard`} replace /> : <AuthPage />} 
+      />
+      
+      <Route
+        path="/student/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.STUDENT]}>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/instructor/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.INSTRUCTOR]}>
+            <InstructorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/faculty/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.FACULTY_ADVISOR]}>
+            <FacultyDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route path="/logout" element={<LogoutHandler />} />
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster />
+      </AuthProvider>
+    </Router>
+  );
 }
 
-export default App
+export default App;
